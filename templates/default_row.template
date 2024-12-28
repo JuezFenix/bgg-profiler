@@ -1,0 +1,11 @@
+<tr>
+    <td><a href="{url}" target="_blank">{name}</a></td>
+    <td><img src="{thumbnail}" alt="{name}" style="max-width: 100px;"></td>
+    <td>{min_players}</td>
+    <td>{max_players}</td>
+    <td>{ideal_players}</td>
+    <td>{playing_time}</td>
+    <td>{weight}</td>
+    <td>{min_age}</td>
+    <td>{year_published}</td>
+</tr>

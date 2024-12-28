@@ -1,0 +1,13 @@
+<div class="card">
+    <img src="{thumbnail}" alt="{name}">
+    <div class="card-content">
+        <h2 class="card-title"><a href="{url}" target="_blank">{name}</a></h2>
+        <div class="card-details">
+            <p><strong>Jugadores:</strong> {min_players} - {max_players} (Ideales: {ideal_players})</p>
+            <p><strong>Duración:</strong> {playing_time} minutos</p>
+            <p><strong>Peso:</strong> {weight}</p>
+            <p><strong>Edad mínima:</strong> {min_age}</p>
+            <p><strong>Año:</strong> {year_published}</p>
+        </div>
+    </div>
+</div>

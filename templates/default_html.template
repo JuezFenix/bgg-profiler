@@ -8,10 +8,24 @@
 </head>
 <body>
     <h1 style="text-align:center; margin-top: 20px;">Listado de Juegos</h1>
-    <div class="container">
-        {{CARDS}}
-    </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Imagen</th>
+                    <th>Jugadores Mínimos</th>
+                    <th>Jugadores Máximos</th>
+                    <th>Jugadores Ideales</th>
+                    <th>Duración</th>
+                    <th>Peso</th>
+                    <th>Edad Mínima</th>
+                    <th>Año Primera Publicación</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ROWS}}
+            </tbody>
+        </table>
     {{JQUERY}}
     {{JS}}
 </body>
-</html>
