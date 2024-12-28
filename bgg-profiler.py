@@ -11,8 +11,33 @@ def load_config(config_file):
     config.read(config_file)
     return {
         "username": config.get("user", "username"),
-        "state": config.get("settings", "state")
+        "state": config.get("settings", "state"),
+        "template": config.get("settings", "templates", fallback="default")
     }
+
+# Leer template desde la carpeta template
+def load_template(template_name, resource_type):
+    """
+    Carga un archivo de plantilla desde la carpeta templates.
+    """
+    file_path = f"templates/{template_name}_{resource_type}.template"
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            return file.read()
+    except FileNotFoundError:
+        print(f"Error: No se encontró la plantilla {file_path}.")
+        return ""
+
+def validate_templates(template_name):
+    """
+    Valida que existan todos los recursos necesarios para una plantilla.
+    """
+    resources = ["html", "css", "js", "jquery"]
+    for resource in resources:
+        file_path = f"templates/{template_name}_{resource}.template"
+        if not os.path.exists(file_path):
+            print(f"Advertencia: Falta el archivo {file_path}.")
+
 
 # Obtener juegos desde BGG API
 def fetch_bgg_games(username, state):
@@ -99,22 +124,14 @@ def get_ideal_players(game_xml):
     if not recommended:
         return "Desconocido"
 
-    # Extraer los números del atributo value (por ejemplo: "Recommended with 3–4 players")
     value = recommended["value"]
     numbers = re.findall(r'\d+', value)
     return "–".join(numbers) if numbers else "Desconocido"
 
-# Crear carpeta para guardar los XML de los juegos
-def create_game_folder(state, username):
-    folder_name = f"{state}_{username}_games"
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
-    return folder_name
-
 # Generar HTML incremental usando XML
-def generate_html_incremental(game_xml, collection_name, game_id, username, rows):
+def generate_html_incremental(game_xml, collection_name, game_id, username, cards):
     """
-    Extrae información de un juego y la almacena en la lista de filas para el HTML.
+    Extrae información de un juego y la almacena en la lista de tarjetas para el HTML.
     """
     game_name = collection_name.get(game_id, "Desconocido")
     game_url = f"https://boardgamegeek.com/boardgame/{game_id}"
@@ -126,7 +143,7 @@ def generate_html_incremental(game_xml, collection_name, game_id, username, rows
         return
 
     # Extraer información del juego
-    thumbnail = item.find("thumbnail").text if item.find("thumbnail") else "Sin imagen"
+    thumbnail = item.find("thumbnail").text if item.find("thumbnail") else "https://via.placeholder.com/300x150"
     min_players = item.find("minplayers")["value"]
     max_players = item.find("maxplayers")["value"]
     playing_time = item.find("playingtime")["value"] if item.find("playingtime") else "Desconocida"
@@ -135,8 +152,8 @@ def generate_html_incremental(game_xml, collection_name, game_id, username, rows
     year_published = item.find("yearpublished")["value"] if item.find("yearpublished") else "Desconocido"
     ideal_players = get_ideal_players(game_xml)
 
-    # Almacenar la fila como diccionario
-    rows.append({
+    # Almacenar la tarjeta como diccionario
+    cards.append({
         "name": game_name,
         "url": game_url,
         "thumbnail": thumbnail,
@@ -150,97 +167,54 @@ def generate_html_incremental(game_xml, collection_name, game_id, username, rows
     })
 
 # Generar HTML final
-def generate_html(username, rows):
+def generate_html(username, cards, template_name="default"):
     """
-    Genera el HTML completo con las filas ordenadas.
+    Genera el HTML completo usando plantillas.
+    :param username: Nombre del usuario.
+    :param cards: Lista de tarjetas con datos de juegos.
+    :param template_name: Nombre base de la plantilla a usar.
     """
-    rows_sorted = sorted(rows, key=lambda row: row["name"])  # Ordenar por nombre
+    html_template = load_template(template_name, "html")
+    css_template = load_template(template_name, "css")
+    js_template = load_template(template_name, "js")
+    jquery_template = load_template(template_name, "jquery")
 
     html_file_path = f"{username}_games_list.html"
-    with open(html_file_path, "w", encoding='utf-8') as html_file:
-        html_file.write("""
-        <html>
-        <head>
-            <title>Listado de Juegos</title>
-            <style>
-                body { font-family: Arial, sans-serif; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th .arrows { font-size: 0.8em; margin-left: 5px; color: #ccc; }
-                th.active .arrows { color: black; }
-                img { max-width: 100px; }
-            </style>
-            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-            <script>
-                $(document).ready(function() {
-                    $('th').append('<span class="arrows"> ▲▼</span>'); // Añade las flechas a todas las columnas
 
-                    $('th').click(function() {
-                        var table = $(this).parents('table').eq(0);
-                        var rows = table.find('tr:gt(0)').toArray().sort(comparer($(this).index()));
-                        this.asc = !this.asc;
+    with open(html_file_path, "w", encoding="utf-8") as html_file:
+        # Insertar CSS, JS y jQuery en el HTML principal
+        html_content = html_template.replace("{{CSS}}", f"<style>{css_template}</style>")
+        html_content = html_content.replace("{{JQUERY}}", f"<script>{jquery_template}</script>")
+        html_content = html_content.replace("{{JS}}", f"<script>{js_template}</script>")
 
-                        // Actualizar flechas
-                        $('.arrows').html(' ▲▼').css('color', '#ccc'); // Flechas grises por defecto
-                        $(this).find('.arrows').html(this.asc ? ' ▲' : ' ▼').css('color', 'black'); // Flecha activa
+        # Generar las tarjetas dinámicamente
+        cards_html = ""
+        for card in cards:
+            cards_html += f"""
+            <div class="card">
+                <img src="{card['thumbnail']}" alt="{card['name']}">
+                <div class="card-content">
+                    <h2 class="card-title"><a href="{card['url']}" target="_blank">{card['name']}</a></h2>
+                    <div class="card-details">
+                        <p><strong>Jugadores:</strong> {card['min_players']} - {card['max_players']} (Ideales: {card['ideal_players']})</p>
+                        <p><strong>Duración:</strong> {card['playing_time']} minutos</p>
+                        <p><strong>Peso:</strong> {card['weight']}</p>
+                        <p><strong>Edad mínima:</strong> {card['min_age']}</p>
+                        <p><strong>Año:</strong> {card['year_published']}</p>
+                    </div>
+                </div>
+            </div>
+            """
+        html_content = html_content.replace("{{CARDS}}", cards_html)
 
-                        $('th').removeClass('active');
-                        $(this).addClass('active');
-
-                        if (!this.asc) { rows = rows.reverse(); }
-                        for (var i = 0; i < rows.length; i++) { table.append(rows[i]); }
-                    });
-
-                    function comparer(index) {
-                        return function(a, b) {
-                            var valA = getCellValue(a, index), valB = getCellValue(b, index);
-                            return $.isNumeric(valA) && $.isNumeric(valB) ? valA - valB : valA.localeCompare(valB);
-                        };
-                    }
-
-                    function getCellValue(row, index) {
-                        return $(row).children('td').eq(index).text();
-                    }
-                });
-            </script>
-        </head>
-        <body>
-            <h1>Listado de Juegos</h1>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Imagen</th>
-                        <th>Jugadores Mínimos</th>
-                        <th>Jugadores Máximos</th>
-                        <th>Jugadores Ideales</th>
-                        <th>Duración</th>
-                        <th>Peso</th>
-                        <th>Edad Mínima</th>
-                        <th>Año Primera Publicación</th>
-                    </tr>
-                </thead>
-                <tbody>
-        """)
-        # Añadir las filas ordenadas
-        for row in rows_sorted:
-            html_file.write(f"""
-                <tr>
-                    <td><a href="{row['url']}" target="_blank">{row['name']}</a></td>
-                    <td><img src="{row['thumbnail']}" alt="{row['name']}"></td>
-                    <td>{row['min_players']}</td>
-                    <td>{row['max_players']}</td>
-                    <td>{row['ideal_players']}</td>
-                    <td>{row['playing_time']}</td>
-                    <td>{row['weight']}</td>
-                    <td>{row['min_age']}</td>
-                    <td>{row['year_published']}</td>
-                </tr>
-            """)
+        # Guardar el HTML final
+        html_file.write(html_content)
 
         html_file.write("""
-                </tbody>
-            </table>
+            </div>
+            <footer>
+                <p>Generado por el script de colecciones de BoardGameGeek.</p>
+            </footer>
         </body>
         </html>
         """)
@@ -249,6 +223,8 @@ def main():
     config = load_config("properties.cfg")
     username = config["username"]
     state = config["state"]
+    template_name = config["template"]
+    validate_templates(template_name)
 
     # Guardar y cargar XML de la colección
     xml_data = fetch_bgg_games(username, state)
@@ -256,7 +232,7 @@ def main():
     collection_games = {game["id"]: game["name"] for game in parse_bgg_games(xml_data)}
 
     folder_name = create_game_folder(state, username)
-    rows = []  # Lista para almacenar las filas del HTML
+    cards = []   # Lista para almacenar las filas del HTML
 
     for game_id, game_name in collection_games.items():
         xml_file_path = os.path.join(folder_name, f"{game_id}.xml")
@@ -276,10 +252,10 @@ def main():
                 game_xml = xml_file.read()
 
         # Generar la fila para el HTML
-        generate_html_incremental(game_xml, collection_games, game_id, username, rows)
+        generate_html_incremental(game_xml, collection_games, game_id, username, cards)
 
     # Generar el HTML final
-    generate_html(username, rows)
+    generate_html(username, cards, template_name)
 
 if __name__ == "__main__":
     main()

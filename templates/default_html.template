@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listado de Juegos</title>
+    {{CSS}}
+</head>
+<body>
+    <h1 style="text-align:center; margin-top: 20px;">Listado de Juegos</h1>
+    <div class="container">
+        {{CARDS}}
+    </div>
+    {{JQUERY}}
+    {{JS}}
+</body>
+</html>
