@@ -56,6 +56,9 @@ def fetch_bgg_games(username, state):
 # Guardar XML de la colección
 def save_collection_xml(xml_data, state, username):
     collection_path = f"{state}_{username}_games_list.xml"
+    # Eliminar el archivo si ya existe
+    if os.path.exists(collection_path):
+        os.remove(collection_path)
     with open(collection_path, "w", encoding='utf-8') as xml_file:
         xml_file.write(xml_data)
     print(f"XML de la colección guardado en: {collection_path}")
