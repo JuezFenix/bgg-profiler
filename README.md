@@ -27,14 +27,15 @@ pip install -r requirements.txt
 
    [settings]
    state = own  # Opciones: own, wishlist
-   templates = default
+   templates = default # Opciones: default, cards
    ```
 
-2. **Crear Plantillas:** Las plantillas HTML, CSS y JavaScript se deben colocar en la carpeta `templates` con los siguientes nombres:
-   - `default_html.template`
-   - `default_css.template`
-   - `default_js.template`
-   - `default_jquery.template`
+2. **Crear Plantillas:** (OPCIONAL) Las plantillas HTML, CSS y JavaScript se deben colocar en la carpeta `templates` con el siguiente patron de nombres:
+   - `default_html.template` Definira la plantilla HTML base.
+   - `default_css.template` Definira los estilos del html
+   - `default_js.template` Definira los scripts del html
+   - `default_jquery.template` Definira los scripts de jquery del html 
+   - `default_row.template` Definira la plantilla de cada fila del html.
 
 ## Primera Ejecución
 
